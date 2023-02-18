@@ -1,0 +1,26 @@
+{
+    "id": "2EB05D8E",
+    "path": "~/esa/s5p-py-dashboard/app.py",
+    "project_path": "app.py",
+    "type": "python",
+    "hash": "2577547516",
+    "contents": "",
+    "dirty": false,
+    "created": 1676738455841.0,
+    "source_on_save": false,
+    "relative_order": 1,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "59,28",
+        "scrollLine": "12"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1676745044,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1676745044976,
+    "read_only": false,
+    "read_only_alternatives": []
+}
