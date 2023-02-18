@@ -93,6 +93,39 @@ app_ui = ui.page_fluid(
             ui.output_plot("plot_map")
           ),
         ),
+      ),
+      
+       ui.nav("Spacetime Animation", 
+      # This tab has both a sidebar and panel
+        ui.layout_sidebar(
+        
+          # Define Sidebar Inputs
+          ui.panel_sidebar(
+            
+            # Bounding Box
+            ui.input_numeric("w", "xmin (EPSG:4326)", 10.35, min = 0, step = .01),
+            ui.input_numeric("s", "ymin (EPSG:4326)", 46.10, min = 0, step = .01),
+            ui.input_numeric("e", "xmax (EPSG:4326)", 12.55, min = 0, step = .01),
+            ui.input_numeric("n", "ymax (EPSG:4326)", 47.13, min = 0, step = .01),
+            
+            # Temporal Filter
+            ui.input_date_range("date1date2", "Select timeframe", start = "2019-01-01", end = "2019-12-31",
+                         min = "2019-01-01", max = "2020-12-31", startview =  "year", weekstart = "1"),
+                         
+            # Cloud Cover 
+            ui.input_numeric("cloud", "cloud cover to be considered? (0 to 1 - 0.5 is recommended)", 0.5, min = 0, max = 1, step = .1),
+
+            # Cloud Cover 
+            ui.input_numeric("delay", "animation speed time in fraction of a second (0.1 to 1)", 0.3, min = 0.1, max = 1, step = .1),
+            # Submit Button
+            ui.input_action_button("data3", "Submit")
+            
+          ),
+          # Time Series Plot
+          ui.panel_main(
+            ui.output_plot("plot_animation")
+          ),
+        ),
       )
     )
   )

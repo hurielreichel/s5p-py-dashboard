@@ -3,7 +3,7 @@
     "path": "~/esa/s5p-py-dashboard/app.py",
     "project_path": "app.py",
     "type": "python",
-    "hash": "0",
+    "hash": "2151967568",
     "contents": "",
     "dirty": false,
     "created": 1676738455841.0,
@@ -12,15 +12,15 @@
     "properties": {
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "61,34",
-        "scrollLine": "52"
+        "cursorPosition": "128,7",
+        "scrollLine": "95"
     },
     "folds": "",
-    "lastKnownWriteTime": 1676745970,
+    "lastKnownWriteTime": 1676747105,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1676745970362,
+    "last_content_update": 1676747105282,
     "read_only": false,
     "read_only_alternatives": []
 }
