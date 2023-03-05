@@ -1,13 +1,12 @@
 # Load required packages
 from pathlib import Path
-from shiny import App, render, ui
+from shiny import App, render, ui, reactive
 import openeo
 import json
 import numpy as np
-from scipy.interpolate import make_interp_spline, BSpline
 import pandas as pd
 import matplotlib.pyplot as plt
-from datetime import timedelta
+import asyncio
 
 # openeo connection and authentication 
 # https://open-eo.github.io/openeo-python-client/auth.html
@@ -140,7 +139,8 @@ app_ui = ui.page_fluid(
 def server(input, output, session):
     @output
     @render.plot
-    def plot_ts():
+    @reactive.event(input.data1) 
+    async def plot_ts():
       
       # Define the Spatial Extent
       extent = { # Münster
@@ -246,6 +246,12 @@ def server(input, output, session):
       # plt.show()
       
       return fig
+    
+    # @output
+    # @render.plot
+    # def plot_map():
+    #   
+    #   return map
       
           
 www_dir = Path(__file__).parent / "WWW"
