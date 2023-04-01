@@ -1,11 +1,13 @@
 # Load required packages
 from pathlib import Path
 from shiny import App, render, ui, reactive
+from shinywidgets import output_widget, render_widget
 import openeo, json, asyncio, sys, rasterio, imageio, os, re, datetime
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+import ipyleaflet as L
 from datetime import date
 from shiny.types import ImgData
 
@@ -52,6 +54,9 @@ app_ui = ui.page_fluid(
             ui.input_numeric("e", "xmax (EPSG:4326)", 12.55, min = 0, step = .01),
             ui.input_numeric("n", "ymax (EPSG:4326)", 47.13, min = 0, step = .01),
             
+            # Map with bbox
+            output_widget("map_ts"),
+            
             # Temporal Filter
             ui.input_date_range("date1date2", "Select timeframe", start = "2019-01-01", end = "2019-12-31",
                          min = "2019-01-01", max = str(date.today()), startview =  "year", weekstart = "1"),
@@ -82,6 +87,9 @@ app_ui = ui.page_fluid(
             ui.input_numeric("s2", "ymin (EPSG:4326)", 46.10, min = 0, step = .01),
             ui.input_numeric("e2", "xmax (EPSG:4326)", 12.55, min = 0, step = .01),
             ui.input_numeric("n2", "ymax (EPSG:4326)", 47.13, min = 0, step = .01),
+            
+            # Map with bbox
+            output_widget("map_mm"),
             
             # Temporal Filter
             ui.input_date_range("date1date22", "Select timeframe for interpolation", 
@@ -119,6 +127,9 @@ app_ui = ui.page_fluid(
             ui.input_numeric("e3", "xmax (EPSG:4326)", 12.55, min = 0, step = .01),
             ui.input_numeric("n3", "ymax (EPSG:4326)", 47.13, min = 0, step = .01),
             
+            # Map with bbox
+            output_widget("map_sa"),
+            
             # Temporal Filter
             ui.input_date_range("date1date23", "Select timeframe", start = "2019-07-01", end = "2019-07-31",
                          min = "2019-01-01", max = str(date.today()), startview =  "year", weekstart = "1"),
@@ -143,6 +154,40 @@ app_ui = ui.page_fluid(
 
 
 def server(input, output, session):
+    
+    # Leaft Map for Time Series
+    @output
+    @render_widget
+    def map_ts():
+      center_y = (input.s() + input.n())/2
+      center_x = (input.w() + input.e())/2
+      m = L.Map(center=(center_y, center_x), zoom=6)
+      rectangle = L.Rectangle(bounds=((input.n(), input.w()), (input.s(), input.e())))
+      m.add_layer(rectangle)
+      return m
+    
+    # Leaft Map for Map Maker
+    @output
+    @render_widget
+    def map_mm():
+      center_y = (input.s2() + input.n2())/2
+      center_x = (input.w2() + input.e2())/2
+      m = L.Map(center=(center_y, center_x), zoom=6)
+      rectangle = L.Rectangle(bounds=((input.n2(), input.w2()), (input.s2(), input.e2())))
+      m.add_layer(rectangle)
+      return m
+    
+    # Leaflet Map for Spacetime Animation
+    @output
+    @render_widget
+    def map_sa():
+      center_y = (input.s3() + input.n3())/2
+      center_x = (input.w3() + input.e3())/2
+      m = L.Map(center=(center_y, center_x), zoom=6)
+      rectangle = L.Rectangle(bounds=((input.n3(), input.w3()), (input.s3(), input.e3())))
+      m.add_layer(rectangle)
+      return m
+    
     @output
     @render.plot
     @reactive.event(input.data1) 
