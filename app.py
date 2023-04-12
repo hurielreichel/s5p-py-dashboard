@@ -18,7 +18,7 @@ from shiny.types import ImgData
 con = openeo.connect("openeo.cloud")
 con.authenticate_oidc()
 
-Define User Interface
+# Define User Interface
 app_ui = ui.page_fluid(
   
   # Title of App
