@@ -18,7 +18,7 @@ from shiny.types import ImgData
 con = openeo.connect("openeo.cloud")
 con.authenticate_oidc()
 
-# Define User Interface
+Define User Interface
 app_ui = ui.page_fluid(
   
   # Title of App
@@ -65,7 +65,9 @@ app_ui = ui.page_fluid(
             ui.input_numeric("cloud1", "cloud cover to be considered? (0 to 1 - 0.5 is recommended)", 0.5, min = 0, max = 1, step = .1),
 
             # Submit Button
-            ui.input_action_button("data1", "Submit")
+            ui.input_action_button("data1", "Submit"),
+            
+            ui.output_text("compute")
             
           ),
           # Time Series Plot
@@ -193,120 +195,151 @@ def server(input, output, session):
     @reactive.event(input.data1) 
     async def plot_ts():
       
-      # Define the Spatial Extent
-      extent = { # Münster
-        "type": "Polygon",
-        "coordinates": [[
-          [input.w(), input.n()],
-          [input.e(), input.n()],
-          [input.e(), input.s()],
-          [input.w(), input.s()],
-          [input.w(), input.n()]
-          ]]
-          }
-          
-      # Build the Datacube    
-      datacube = con.load_collection(
-        "TERRASCOPE_S5P_L3_NO2_TD_V1",
-        spatial_extent = extent,
-        temporal_extent = [input.date1date2()[0], input.date1date2()[1]]
-        )
+      with ui.Progress(min=1, max=6) as p:
       
-      # datacube = con.load_collection(
-      #   "SENTINEL_5P_L2",
-      #   spatial_extent = extent,
-      #   temporal_extent = [input.date1date2()[0], input.date1date2()[1]],
-      #   bands=["NO2"]
-      #   )
-      #   
-      # datacube_cloud = con.load_collection(
-      #   "SENTINEL_5P_L2",
-      #   spatial_extent = extent,
-      #   temporal_extent = [input.date1date2()[0], input.date1date2()[1]],
-      #   bands=["CLOUD_FRACTION"]
-      #   )
-      # 
-      # # mask for cloud cover
-      # def threshold_(data):
-      #   
-      #   threshold = data[0].gte(input.cloud())
-      #   
-      #   return threshold
-      # 
-      # # apply the threshold to the cube
-      # cloud_threshold = datacube_cloud.apply(process = threshold_)
-      # 
-      # #   # mask the cloud cover with the calculated mask
-      # datacube = datacube.mask(cloud_threshold)
-      
-      # Fill Gaps
-      datacube = datacube.apply_dimension(dimension = "t", process = "array_interpolate_linear")
-      
-      # Moving Average Window
-      moving_average_window = 31
-      
-      with open('ma.py', 'r') as file:
-        udf_file = file.read()
+        # Define the Spatial Extent
+        extent = { # Münster
+          "type": "Polygon",
+          "coordinates": [[
+            [input.w(), input.n()],
+            [input.e(), input.n()],
+            [input.e(), input.s()],
+            [input.w(), input.s()],
+            [input.w(), input.n()]
+            ]]
+            }
+            
+        p.set(1, message="Local Wrangling")
+            
+        # Build the Datacube    
+        datacube = con.load_collection(
+          "TERRASCOPE_S5P_L3_NO2_TD_V1",
+          spatial_extent = extent,
+          temporal_extent = [input.date1date2()[0], input.date1date2()[1]]
+          )
         
-      udf = openeo.UDF(udf_file.format(n = moving_average_window))
-      datacube_ma = datacube.apply_dimension(dimension = "t", process = udf)
+        # datacube = con.load_collection(
+        #   "SENTINEL_5P_L2",
+        #   spatial_extent = extent,
+        #   temporal_extent = [input.date1date2()[0], input.date1date2()[1]],
+        #   bands=["NO2"]
+        #   )
+        #   
+        # datacube_cloud = con.load_collection(
+        #   "SENTINEL_5P_L2",
+        #   spatial_extent = extent,
+        #   temporal_extent = [input.date1date2()[0], input.date1date2()[1]],
+        #   bands=["CLOUD_FRACTION"]
+        #   )
+        # 
+        # # mask for cloud cover
+        # def threshold_(data):
+        #   
+        #   threshold = data[0].gte(input.cloud())
+        #   
+        #   return threshold
+        # 
+        # # apply the threshold to the cube
+        # cloud_threshold = datacube_cloud.apply(process = threshold_)
+        # 
+        # #   # mask the cloud cover with the calculated mask
+        # datacube = datacube.mask(cloud_threshold)
+        
+        # Fill Gaps
+        datacube = datacube.apply_dimension(dimension = "t", process = "array_interpolate_linear")
+        
+        # Moving Average Window
+        moving_average_window = 31
+        
+        with open('ma.py', 'r') as file:
+          udf_file = file.read()
+          
+        udf = openeo.UDF(udf_file.format(n = moving_average_window))
+        datacube_ma = datacube.apply_dimension(dimension = "t", process = udf)
+        
+        # Timeseries as JSON
+        p.set(2, message="Downloading Mean Values... may take a while")
+        
+        ## Mean as Aggregator
+        datacube_mean = datacube.aggregate_spatial(geometries = extent, reducer = "mean")
+        datacube_mean = datacube_mean.download("data/time-series-mean.json")
+        
+        p.set(3, message="Downloading Max Values... may take a while")
+        
+        ## Max as Aggregator
+        datacube_max = datacube.aggregate_spatial(geometries = extent, reducer = "max")
+        datacube_max = datacube_max.download("data/time-series-max.json")
+        
+        p.set(4, message="Downloading Moving Average... may take a while")
+        
+        ## Mean as Aggregator for Moving Average Data Cube
+        datacube_ma = datacube_ma.aggregate_spatial(geometries = extent, reducer = "mean")
+        datacube_ma = datacube_ma.download("data/time-series-ma.json")
+        
+        p.set(5, message="Reading JSONs")
+        
+        # Read in JSONs
+        with open("data/time-series-mean.json", "r") as f:
+          ts_mean = json.load(f)
+        print("mean time series read")
+        
+        with open("data/time-series-max.json", "r") as f:
+          ts_max = json.load(f)
+        print("max time series read")
+  
+        with open("data/time-series-ma.json", "r") as f:
+          ts_ma = json.load(f)
+        print("ma time series read")
+    
+        ts_df = pd.DataFrame.from_dict(ts_mean, orient='index', columns=['Mean']).reset_index()
+        ts_df.columns = ['Date', 'Mean']
+        ts_df['Mean'] = ts_df['Mean'].str.get(0)
+       
+        ts_max_df = pd.DataFrame.from_dict(ts_max, orient='index', columns=['Max']).reset_index()
+        ts_max_df.columns = ['Date', 'Max']
+        ts_df['Max'] = ts_max_df['Max'].str.get(0) 
+        
+        ts_ma_df = pd.DataFrame.from_dict(ts_ma, orient='index', columns=['MA']).reset_index()
+        ts_ma_df.columns = ['Date', 'MA']
+        ts_df['MA'] = ts_ma_df['MA'].str.get(0)
+        
+        # convert 'Date' column to datetime dtype
+        ts_df['Date'] = pd.to_datetime(ts_df['Date'])
+        
+        # set 'Date' column as index
+        ts_df.set_index('Date', inplace=True)
+        
+        # Time Series Smoothing
+        ts_df['Smooth'] = ts_df['Mean'].rolling(31).mean()
+        
+        # Add local data
+        if input.e() <= 12.55 & input.w() >= 10.35 & input.s() >= 46.10 & input.n() <= 47.13 & input.date1date2()[0] >= "2018-12-14" & input.date1date2()[1] <= "2021-12-31":
+          
+          df = pd.read_excel("data/rshiny_NO2_TM75_2017-2022.xlsx")
+          df = df.iloc[4:].iloc[:, 1:]
+          
+          mean_no2 = df.mean(axis=1)
+          df["Date"] = pd.date_range(start="2017-01-01", periods=len(df), freq="D").date
+          df['Local'] = mean_no2  * 10e-2
+          df_local = df[['Date', 'Local']]
+          
+          # filter by date
+          # df_local = df_local[(df_local["Date"] > pd.to_datetime("2019-01-01")) & (df_local["Date"] < pd.to_datetime("2019-12-31"))]
+          df_local = df_local[(df_local["Date"] >= input.date1date2()[0]) & (df_local["Date"] <= input.date1date2()[1])]
+          
+          # left join by date
+          df_local['Date'] = pd.to_datetime(df_local['Date']).dt.tz_localize('UTC')
+          ts_df['Local'] = df_local['Local']
       
-      # Timeseries as JSON
-      print("Processing and Downloading Results...")
-      
-      ## Mean as Aggregator
-      datacube_mean = datacube.aggregate_spatial(geometries = extent, reducer = "mean")
-      datacube_mean = datacube_mean.download("data/time-series-mean.json")
-      
-      ## Max as Aggregator
-      datacube_max = datacube.aggregate_spatial(geometries = extent, reducer = "max")
-      datacube_max = datacube_max.download("data/time-series-max.json")
-      
-      ## Mean as Aggregator for Moving Average Data Cube
-      datacube_ma = datacube_ma.aggregate_spatial(geometries = extent, reducer = "mean")
-      datacube_ma = datacube_ma.download("data/time-series-ma.json")
-      
-      # Read in JSONs
-      with open("data/time-series-mean.json", "r") as f:
-        ts_mean = json.load(f)
-      print("mean time series read")
-      
-      with open("data/time-series-max.json", "r") as f:
-        ts_max = json.load(f)
-      print("max time series read")
-
-      with open("data/time-series-ma.json", "r") as f:
-        ts_ma = json.load(f)
-      print("ma time series read")
-
-      ts_df = pd.DataFrame.from_dict(ts_mean, orient='index', columns=['Mean']).reset_index()
-      ts_df.columns = ['Date', 'Mean']
-      ts_df['Mean'] = ts_df['Mean'].str.get(0)
-     
-      ts_max_df = pd.DataFrame.from_dict(ts_max, orient='index', columns=['Max']).reset_index()
-      ts_max_df.columns = ['Date', 'Max']
-      ts_df['Max'] = ts_max_df['Max'].str.get(0) 
-      
-      ts_ma_df = pd.DataFrame.from_dict(ts_ma, orient='index', columns=['MA']).reset_index()
-      ts_ma_df.columns = ['Date', 'MA']
-      ts_df['MA'] = ts_ma_df['MA'].str.get(0)
-      
-      # convert 'Date' column to datetime dtype
-      ts_df['Date'] = pd.to_datetime(ts_df['Date'])
-      
-      # set 'Date' column as index
-      ts_df.set_index('Date', inplace=True)
-      
-      # Time Series Smoothing
-      ts_df['Smooth'] = ts_df['Mean'].rolling(31).mean()
-
-      # plot time series for each column
-      fig, ax = plt.subplots(figsize=(16, 12))
-      ts_df.plot(ax=ax)
-      ax.set_xlabel('Time')
-      ax.set_ylabel('Value')
-      ax.set_title('NO2 Time Series from SENTINEL 5P')
-      # plt.show()
+        # plot time series for each column
+        fig, ax = plt.subplots(figsize=(16, 12))
+        ts_df.plot(ax=ax)
+        ax.set_xlabel('Time')
+        ax.set_ylabel('Value')
+        ax.set_title('NO2 Time Series from SENTINEL 5P')
+        # plt.show()
+        
+        p.set(6, message="Done")
       
       return fig
     
@@ -315,84 +348,94 @@ def server(input, output, session):
     @reactive.event(input.data2)
     async def plot_map():
       
-      # Define the Spatial Extent
-      extent = { # Münster
-        "type": "Polygon",
-        "coordinates": [[
-          [input.w2(), input.n2()],
-          [input.e2(), input.n2()],
-          [input.e2(), input.s2()],
-          [input.w2(), input.s2()],
-          [input.w2(), input.n2()]
-          ]]
-          }
-          
-      # Build the Datacube    
-      datacube = con.load_collection(
-        "TERRASCOPE_S5P_L3_NO2_TD_V1",
-        spatial_extent = extent,
-        temporal_extent = [input.date1date22()[0], input.date1date22()[1]]
-        )
+      with ui.Progress(min=1, max=4) as p:
       
-      # datacube = con.load_collection(
-      #   "SENTINEL_5P_L2",
-      #   spatial_extent = extent,
-      #   temporal_extent = [input.date1date22()[0], input.date1date22()[1]],
-      #   bands=["NO2"]
-      #   )
-      #   
-      # datacube_cloud = con.load_collection(
-      #   "SENTINEL_5P_L2",
-      #   spatial_extent = extent,
-      #   temporal_extent = [input.date1date22()[0], input.date1date22()[1]],
-      #   bands=["CLOUD_FRACTION"]
-      #   )
-      # 
-      # # mask for cloud cover
-      # def threshold_(data):
-      #   
-      #   threshold = data[0].gte(input.cloud2())
-      #   
-      #   return threshold
-      # 
-      # # apply the threshold to the cube
-      # cloud_threshold = datacube_cloud.apply(process = threshold_)
-      # 
-      # #   # mask the cloud cover with the calculated mask
-      # datacube = datacube.mask(cloud_threshold)
-      
-      # Fill Gaps
-      datacube = datacube.apply_dimension(dimension = "t", process = "array_interpolate_linear")
-      
-      # Filter Temporal
-      datacube = datacube.filter_temporal(extent = [input.date(), input.date()])
-      
-      # Safer for interpolation and plot dates
-      if input.date() > input.date1date22()[1] or input.date() < input.date1date22()[0]:
-        sys.exit("Date of Plot should be between the interpolation dates")
+        # Define the Spatial Extent
+        extent = {
+          "type": "Polygon",
+          "coordinates": [[
+            [input.w2(), input.n2()],
+            [input.e2(), input.n2()],
+            [input.e2(), input.s2()],
+            [input.w2(), input.s2()],
+            [input.w2(), input.n2()]
+            ]]
+            }
+           
+        p.set(1, message="Data Cube Wrangling")
+ 
+        # Build the Datacube    
+        datacube = con.load_collection(
+          "TERRASCOPE_S5P_L3_NO2_TD_V1",
+          spatial_extent = extent,
+          temporal_extent = [input.date1date22()[0], input.date1date22()[1]]
+          )
+        
+        # datacube = con.load_collection(
+        #   "SENTINEL_5P_L2",
+        #   spatial_extent = extent,
+        #   temporal_extent = [input.date1date22()[0], input.date1date22()[1]],
+        #   bands=["NO2"]
+        #   )
+        #   
+        # datacube_cloud = con.load_collection(
+        #   "SENTINEL_5P_L2",
+        #   spatial_extent = extent,
+        #   temporal_extent = [input.date1date22()[0], input.date1date22()[1]],
+        #   bands=["CLOUD_FRACTION"]
+        #   )
+        # 
+        # # mask for cloud cover
+        # def threshold_(data):
+        #   
+        #   threshold = data[0].gte(input.cloud2())
+        #   
+        #   return threshold
+        # 
+        # # apply the threshold to the cube
+        # cloud_threshold = datacube_cloud.apply(process = threshold_)
+        # 
+        # #   # mask the cloud cover with the calculated mask
+        # datacube = datacube.mask(cloud_threshold)
+        
+        # Fill Gaps
+        datacube = datacube.apply_dimension(dimension = "t", process = "array_interpolate_linear")
+        
+        # Filter Temporal
+        datacube = datacube.filter_temporal(extent = [input.date(), input.date()])
+        
+        # Safer for interpolation and plot dates
+        if input.date() > input.date1date22()[1] or input.date() < input.date1date22()[0]:
+          sys.exit("Date of Plot should be between the interpolation dates")
 
-      # Download TIF
-      print("Processing and Downloading Results...")
-      datacube.download("data/map.tif")
-      
-      # Open TIF file
-      with rasterio.open("data/map.tif") as src:
-          image = src.read(1, masked=True)
-          vmin, vmax = image.min(), image.max() # Define minimum and maximum values for the color map
-      print("raster read")
-      
-      # Create figure and axis objects
-      fig, ax = plt.subplots()
-      
-      # Plot image as a continuous variable with a color legend
-      im = ax.imshow(image, cmap='viridis', vmin=vmin, vmax=vmax)
-      
-      # Add colorbar and title
-      cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-      ax.set_title('NO2 Concentration Screenshot at '+input.date().strftime('%Y-%m-%d'))
-      
-      # Show plot
-      # plt.show()
+        p.set(2, message="Downloading Results...")
+
+        # Download TIF
+        print("Processing and Downloading Results...")
+        datacube.download("data/map.tif")
+        
+        p.set(3, message="Reading Image into Memory")
+        
+        # Open TIF file
+        with rasterio.open("data/map.tif") as src:
+            image = src.read(1, masked=True)
+            vmin, vmax = image.min(), image.max() # Define minimum and maximum values for the color map
+        print("raster read")
+        
+        # Create figure and axis objects
+        fig, ax = plt.subplots()
+        
+        # Plot image as a continuous variable with a color legend
+        im = ax.imshow(image, cmap='viridis', vmin=vmin, vmax=vmax)
+        
+        # Add colorbar and title
+        cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+        ax.set_title('NO2 Concentration Screenshot at '+input.date().strftime('%Y-%m-%d'))
+        
+        p.set(4, message="Done")
+        
+        # Show plot
+        # plt.show()
       return fig
       
     @output
@@ -400,14 +443,19 @@ def server(input, output, session):
     @reactive.event(input.data3) 
     async def image():
       
-      generate_gif()
+      with ui.Progress(min=1, max=2) as p:
+        
+        p.set(1, message="Downloading")
+
+        generate_gif()
+        
+        print("done with function")
+        p.set(2, message="Done")
+        from pathlib import Path
+        
+        dir = Path(__file__).resolve().parent
+        img: ImgData = {"src": str(dir / "PNG" / 'spacetime-animation.gif'), "width": "1000px"}# Define the Spatial Extent
       
-      print("done with function")
-      from pathlib import Path
-      
-      dir = Path(__file__).resolve().parent
-      img: ImgData = {"src": str(dir / "PNG" / 'spacetime-animation.gif'), "width": "1000px"}# Define the Spatial Extent
-    
       return img
     
     #Generate a GIF function
