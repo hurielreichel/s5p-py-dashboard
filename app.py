@@ -54,13 +54,13 @@ app_ui = ui.page_fluid(
             ui.input_numeric("e", "xmax (EPSG:4326)", 12.55, min = 0, step = .01),
             ui.input_numeric("n", "ymax (EPSG:4326)", 47.13, min = 0, step = .01),
             
+             # Temporal Filter
+            ui.input_date_range("date1date2", "Select timeframe", start = "2019-01-01", end = "2019-12-31", 
+            min = "2019-01-01", max = str(date.today()), startview =  "year", weekstart = "1"),
+
             # Map with bbox
             output_widget("map_ts"),
             
-            # Temporal Filter
-            ui.input_date_range("date1date2", "Select timeframe", start = "2019-01-01", end = "2019-12-31",
-                         min = "2019-01-01", max = str(date.today()), startview =  "year", weekstart = "1"),
-                         
             # Cloud Cover 
             ui.input_numeric("cloud1", "cloud cover to be considered? (0 to 1 - 0.5 is recommended)", 0.5, min = 0, max = 1, step = .1),
 
@@ -90,16 +90,16 @@ app_ui = ui.page_fluid(
             ui.input_numeric("e2", "xmax (EPSG:4326)", 12.55, min = 0, step = .01),
             ui.input_numeric("n2", "ymax (EPSG:4326)", 47.13, min = 0, step = .01),
             
-            # Map with bbox
-            output_widget("map_mm"),
-            
             # Temporal Filter
             ui.input_date_range("date1date22", "Select timeframe for interpolation", 
             start = "2019-01-01", end = "2019-12-31",
             min = "2019-01-01", max = str(date.today()), startview =  "year", weekstart = "1"),
             
+            # Map with bbox
+            output_widget("map_mm"),
+            
             # Date for Plot
-            ui.input_date("date", "Select Date of the Slice", startview='year', value="2019-07-15",
+            ui.input_date("date", "Select Date of the Slice", startview='year', value="2019-07-12",
             min = "2019-01-01", max = str(date.today())),
                          
             # Cloud Cover 
@@ -208,43 +208,43 @@ def server(input, output, session):
             [input.w(), input.n()]
             ]]
             }
-            
+      
         p.set(1, message="Local Wrangling")
             
         # Build the Datacube    
-        datacube = con.load_collection(
-          "TERRASCOPE_S5P_L3_NO2_TD_V1",
-          spatial_extent = extent,
-          temporal_extent = [input.date1date2()[0], input.date1date2()[1]]
-          )
-        
         # datacube = con.load_collection(
-        #   "SENTINEL_5P_L2",
+        #   "TERRASCOPE_S5P_L3_NO2_TD_V1",
         #   spatial_extent = extent,
-        #   temporal_extent = [input.date1date2()[0], input.date1date2()[1]],
-        #   bands=["NO2"]
-        #   )
-        #   
-        # datacube_cloud = con.load_collection(
-        #   "SENTINEL_5P_L2",
-        #   spatial_extent = extent,
-        #   temporal_extent = [input.date1date2()[0], input.date1date2()[1]],
-        #   bands=["CLOUD_FRACTION"]
+        #   temporal_extent = [input.date1date2()[0], input.date1date2()[1]]
         #   )
         # 
-        # # mask for cloud cover
-        # def threshold_(data):
-        #   
-        #   threshold = data[0].gte(input.cloud())
-        #   
-        #   return threshold
-        # 
-        # # apply the threshold to the cube
-        # cloud_threshold = datacube_cloud.apply(process = threshold_)
-        # 
-        # #   # mask the cloud cover with the calculated mask
-        # datacube = datacube.mask(cloud_threshold)
-        
+        datacube = con.load_collection(
+          "SENTINEL_5P_L2",
+          spatial_extent = extent,
+          temporal_extent = [input.date1date2()[0], input.date1date2()[1]],
+          bands=["NO2"]
+          )
+
+        datacube_cloud = con.load_collection(
+          "SENTINEL_5P_L2",
+          spatial_extent = extent,
+          temporal_extent = [input.date1date2()[0], input.date1date2()[1]],
+          bands=["CLOUD_FRACTION"]
+          )
+
+        # mask for cloud cover
+        def threshold_(data):
+
+          threshold = data[0].gte(0.5)
+
+          return threshold
+
+        # apply the threshold to the cube
+        cloud_threshold = datacube_cloud.apply(process = threshold_)
+
+        #   # mask the cloud cover with the calculated mask
+        datacube = datacube.mask(cloud_threshold)
+
         # Fill Gaps
         datacube = datacube.apply_dimension(dimension = "t", process = "array_interpolate_linear")
         
@@ -313,7 +313,7 @@ def server(input, output, session):
         ts_df['Smooth'] = ts_df['Mean'].rolling(31).mean()
         
         # Add local data
-        if input.e() <= 12.55 & input.w() >= 10.35 & input.s() >= 46.10 & input.n() <= 47.13 & input.date1date2()[0] >= "2018-12-14" & input.date1date2()[1] <= "2021-12-31":
+        if input.e() <= 12.55 and input.w() >= 10.35 and input.s() >= 46.10 and input.n() <= 47.13 and input.date1date2()[0] >= pd.Timestamp("2018-12-14") and input.date1date2()[1] <= pd.Timestamp("2021-12-31"):
           
           df = pd.read_excel("data/rshiny_NO2_TM75_2017-2022.xlsx")
           df = df.iloc[4:].iloc[:, 1:]
@@ -324,7 +324,7 @@ def server(input, output, session):
           df_local = df[['Date', 'Local']]
           
           # filter by date
-          # df_local = df_local[(df_local["Date"] > pd.to_datetime("2019-01-01")) & (df_local["Date"] < pd.to_datetime("2019-12-31"))]
+          # df_local = df_local[(df_local["Date"] > pd.Timestamp("2019-01-01")) & (df_local["Date"] < pd.Timestamp("2019-12-31"))]
           df_local = df_local[(df_local["Date"] >= input.date1date2()[0]) & (df_local["Date"] <= input.date1date2()[1])]
           
           # left join by date
@@ -365,38 +365,38 @@ def server(input, output, session):
         p.set(1, message="Data Cube Wrangling")
  
         # Build the Datacube    
-        datacube = con.load_collection(
-          "TERRASCOPE_S5P_L3_NO2_TD_V1",
-          spatial_extent = extent,
-          temporal_extent = [input.date1date22()[0], input.date1date22()[1]]
-          )
-        
         # datacube = con.load_collection(
-        #   "SENTINEL_5P_L2",
+        #   "TERRASCOPE_S5P_L3_NO2_TD_V1",
         #   spatial_extent = extent,
-        #   temporal_extent = [input.date1date22()[0], input.date1date22()[1]],
-        #   bands=["NO2"]
+        #   temporal_extent = [input.date1date22()[0], input.date1date22()[1]]
         #   )
-        #   
-        # datacube_cloud = con.load_collection(
-        #   "SENTINEL_5P_L2",
-        #   spatial_extent = extent,
-        #   temporal_extent = [input.date1date22()[0], input.date1date22()[1]],
-        #   bands=["CLOUD_FRACTION"]
-        #   )
-        # 
-        # # mask for cloud cover
-        # def threshold_(data):
-        #   
-        #   threshold = data[0].gte(input.cloud2())
-        #   
-        #   return threshold
-        # 
-        # # apply the threshold to the cube
-        # cloud_threshold = datacube_cloud.apply(process = threshold_)
-        # 
-        # #   # mask the cloud cover with the calculated mask
-        # datacube = datacube.mask(cloud_threshold)
+        
+        datacube = con.load_collection(
+          "SENTINEL_5P_L2",
+          spatial_extent = extent,
+          temporal_extent = [input.date1date2()[0], input.date1date2()[1]],
+          bands=["NO2"]
+          )
+
+        datacube_cloud = con.load_collection(
+          "SENTINEL_5P_L2",
+          spatial_extent = extent,
+          temporal_extent = [input.date1date2()[0], input.date1date2()[1]],
+          bands=["CLOUD_FRACTION"]
+          )
+
+        # mask for cloud cover
+        def threshold_(data):
+
+          threshold = data[0].gte(0.5)
+
+          return threshold
+
+        # apply the threshold to the cube
+        cloud_threshold = datacube_cloud.apply(process = threshold_)
+
+        #   # mask the cloud cover with the calculated mask
+        datacube = datacube.mask(cloud_threshold)
         
         # Fill Gaps
         datacube = datacube.apply_dimension(dimension = "t", process = "array_interpolate_linear")
@@ -443,14 +443,16 @@ def server(input, output, session):
     @reactive.event(input.data3) 
     async def image():
       
-      with ui.Progress(min=1, max=2) as p:
+      with ui.Progress(min=1, max=3) as p:
         
-        p.set(1, message="Downloading")
+        p.set(1, message="Starting Process")
+        
+        p.set(2, message="Downloading")
 
         generate_gif()
         
         print("done with function")
-        p.set(2, message="Done")
+        p.set(3, message="Done")
         from pathlib import Path
         
         dir = Path(__file__).resolve().parent
@@ -471,37 +473,37 @@ def server(input, output, session):
           ]]}
               
       # Build the Datacube    
-      datacube = con.load_collection(
-        "TERRASCOPE_S5P_L3_NO2_TD_V1",
-        spatial_extent = extent,
-        temporal_extent = [input.date1date23()[0], input.date1date23()[1]])
-          
       # datacube = con.load_collection(
-      #   "SENTINEL_5P_L2",
+      #   "TERRASCOPE_S5P_L3_NO2_TD_V1",
       #   spatial_extent = extent,
-      #   temporal_extent = [input.date1date23()[0], input.date1date23()[1]],
-      #   bands=["NO2"]
-      #   )
-      #   
-      # datacube_cloud = con.load_collection(
-      #   "SENTINEL_5P_L2",
-      #   spatial_extent = extent,
-      #   temporal_extent = [input.date1date23()[0], input.date1date23()[1]],
-      #   bands=["CLOUD_FRACTION"]
-      #   )
-      # 
-      # # mask for cloud cover
-      # def threshold_(data):
-      #   
-      #   threshold = data[0].gte(input.cloud3())
-      #   
-      #   return threshold
-      # 
-      # # apply the threshold to the cube
-      # cloud_threshold = datacube_cloud.apply(process = threshold_)
-      # 
-      # #   # mask the cloud cover with the calculated mask
-      # datacube = datacube.mask(cloud_threshold)
+      #   temporal_extent = [input.date1date23()[0], input.date1date23()[1]])
+          
+      datacube = con.load_collection(
+          "SENTINEL_5P_L2",
+          spatial_extent = extent,
+          temporal_extent = [input.date1date2()[0], input.date1date2()[1]],
+          bands=["NO2"]
+          )
+
+      datacube_cloud = con.load_collection(
+          "SENTINEL_5P_L2",
+          spatial_extent = extent,
+          temporal_extent = [input.date1date2()[0], input.date1date2()[1]],
+          bands=["CLOUD_FRACTION"]
+          )
+
+      # mask for cloud cover
+      def threshold_(data):
+
+        threshold = data[0].gte(0.5)
+
+        return threshold
+
+      # apply the threshold to the cube
+      cloud_threshold = datacube_cloud.apply(process = threshold_)
+
+      #   # mask the cloud cover with the calculated mask
+      datacube = datacube.mask(cloud_threshold)
       
       # Fill Gaps
       datacube = datacube.apply_dimension(dimension = "t", process = "array_interpolate_linear")
