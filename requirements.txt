@@ -1,0 +1,13 @@
+imageio==2.27.0
+ipyleaflet==0.17.2
+ipython==8.12.0
+ipywidgets==8.0.6
+jsonschema==4.6.0
+matplotlib==3.7.1
+matplotlib-inline==0.1.6
+numpy==1.24.2
+openeo==0.15.0
+pandas==1.5.3
+rasterio==1.3.6
+shiny==0.2.10
+shinywidgets==0.1.6

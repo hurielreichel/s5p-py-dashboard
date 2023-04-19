@@ -49,13 +49,13 @@ app_ui = ui.page_fluid(
           ui.panel_sidebar(
             
             # Bounding Box
-            ui.input_numeric("w", "xmin (EPSG:4326)", 10.35, min = 0, step = .01),
+            ui.input_numeric("w", "xmin (EPSG:4326)", 11.0, min = 0, step = .01),
             ui.input_numeric("s", "ymin (EPSG:4326)", 46.10, min = 0, step = .01),
-            ui.input_numeric("e", "xmax (EPSG:4326)", 12.55, min = 0, step = .01),
-            ui.input_numeric("n", "ymax (EPSG:4326)", 47.13, min = 0, step = .01),
+            ui.input_numeric("e", "xmax (EPSG:4326)", 12.20, min = 0, step = .01),
+            ui.input_numeric("n", "ymax (EPSG:4326)", 47.10, min = 0, step = .01),
             
              # Temporal Filter
-            ui.input_date_range("date1date2", "Select timeframe", start = "2019-01-01", end = "2019-12-31", 
+            ui.input_date_range("date1date2", "Select timeframe", start = "2019-05-01", end = "2019-08-31", 
             min = "2019-01-01", max = str(date.today()), startview =  "year", weekstart = "1"),
 
             # Map with bbox
@@ -85,14 +85,14 @@ app_ui = ui.page_fluid(
           ui.panel_sidebar(
             
             # Bounding Box
-            ui.input_numeric("w2", "xmin (EPSG:4326)", 10.35, min = 0, step = .01),
+            ui.input_numeric("w2", "xmin (EPSG:4326)", 11.0, min = 0, step = .01),
             ui.input_numeric("s2", "ymin (EPSG:4326)", 46.10, min = 0, step = .01),
-            ui.input_numeric("e2", "xmax (EPSG:4326)", 12.55, min = 0, step = .01),
-            ui.input_numeric("n2", "ymax (EPSG:4326)", 47.13, min = 0, step = .01),
+            ui.input_numeric("e2", "xmax (EPSG:4326)", 12.20, min = 0, step = .01),
+            ui.input_numeric("n2", "ymax (EPSG:4326)", 47.10, min = 0, step = .01),
             
             # Temporal Filter
             ui.input_date_range("date1date22", "Select timeframe for interpolation", 
-            start = "2019-01-01", end = "2019-12-31",
+            start = "2019-05-01", end = "2019-08-31",
             min = "2019-01-01", max = str(date.today()), startview =  "year", weekstart = "1"),
             
             # Map with bbox
@@ -124,18 +124,18 @@ app_ui = ui.page_fluid(
           ui.panel_sidebar(
             
             # Bounding Box
-            ui.input_numeric("w3", "xmin (EPSG:4326)", 10.35, min = 0, step = .01),
+            ui.input_numeric("w3", "xmin (EPSG:4326)", 11.0, min = 0, step = .01),
             ui.input_numeric("s3", "ymin (EPSG:4326)", 46.10, min = 0, step = .01),
-            ui.input_numeric("e3", "xmax (EPSG:4326)", 12.55, min = 0, step = .01),
-            ui.input_numeric("n3", "ymax (EPSG:4326)", 47.13, min = 0, step = .01),
-            
-            # Map with bbox
-            output_widget("map_sa"),
+            ui.input_numeric("e3", "xmax (EPSG:4326)", 12.20, min = 0, step = .01),
+            ui.input_numeric("n3", "ymax (EPSG:4326)", 47.10, min = 0, step = .01),
             
             # Temporal Filter
             ui.input_date_range("date1date23", "Select timeframe", start = "2019-07-01", end = "2019-07-31",
                          min = "2019-01-01", max = str(date.today()), startview =  "year", weekstart = "1"),
                          
+            # Map with bbox
+            output_widget("map_sa"),
+            
             # Cloud Cover 
             ui.input_numeric("cloud3", "cloud cover to be considered? (0 to 1 - 0.5 is recommended)", 0.5, min = 0, max = 1, step = .1),
 
