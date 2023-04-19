@@ -36,7 +36,7 @@ As one may see, there are three main tabs in the app, besides the home screen : 
 
 The Time-Series Analyser allows one to see the "reduced" time series of Sentinel 5P NO2 data from a given region. The source code can be found ![here](app.py), where you can see the whole application and the three main services it provides. Basically, to use the "Time Series Analyser" function, the user can pass the coordinates of the bounding box of the area of interest, which are shown in a dynamic map just below; but also the time frame and the cloud cover to be considered in the computation. This last one refers to the percentage (0 to 1) of values that should be really considered as cloud. It works as a quality flag. The recommendation of ESA and the Sentinel documentation is to use 0.5, the default here.
 
-![Time Series Analyser View](ts.png)
+![Time Series Analyser View](fig/ts.png)
 
 Once all parameters are set, the user may just press the "Submit button" to launch results. The default coordinates will give the user a plot of the Northern Region of Italy, in the region of Bolzano, where some ![local data](data/rshiny_NO2_TM75_2017-2022.xlsx) is also available for comparison. If the user's bounding box is inside this region, one will always see this data.
 
@@ -50,7 +50,7 @@ If the user desires to look at NO2 data at one given point in time, this functio
 
 The parameters present are the date for the snapshot, the cloud cover quality flag, and the coordinates of the bounding box, once more.
 
-![Map Maker Screenshot](map-maker.png)
+![Map Maker Screenshot](fig/map-maker.png)
 
 
 ### Spacetime Animation: a spatio-temporal view
@@ -308,14 +308,15 @@ In case one landed in this page, but is more interested in the R programming lan
 
 
 ## Dependencies
-shiny                  0.2.10
-shinywidgets           0.1.6
-openeo                 0.15.0
-jsonschema             4.6.0
-rasterio               1.3.6
-imageio                2.27.0
-numpy                  1.24.2
-pandas                 1.5.3
-matplotlib             3.7.1
-matplotlib-inline      0.1.6
-ipyleaflet             0.17.2
+
+- shiny                  0.2.10
+- shinywidgets           0.1.6
+- openeo                 0.15.0
+- jsonschema             4.6.0
+- rasterio               1.3.6
+- imageio                2.27.0
+- numpy                  1.24.2
+- pandas                 1.5.3
+- matplotlib             3.7.1
+- matplotlib-inline      0.1.6
+- ipyleaflet             0.17.2
