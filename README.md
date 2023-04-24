@@ -26,7 +26,7 @@ con = openeo.connect("openeo.cloud")
 con.authenticate_oidc()
 ```
 
-Obviously enough, it is crucial to have access to openEO platform, hence to have already credentials to use it. The Services provided shall demonstrate the options that fit each user demands. ![Here](https://openeo.cloud/#plans) you may register for a new account or maybe a free trial. 
+Obviously enough, it is crucial to have access to openEO platform, hence to have already credentials to use it. The Services provided shall demonstrate the options that fit each user demands. [Here](https://openeo.cloud/#plans) you may register for a new account or maybe a free trial. 
 
 ![Home page of the application](fig/home.png)
 
@@ -189,7 +189,7 @@ for filename in os.listdir("PNG"):
 
 ## How to run openEO processes inside a python shiny APP?
 
-If one is new to *shiny* in Python, a really good documentation can be found ![here](https://shiny.rstudio.com/py/docs/get-started.html). This documentation is the source for all main interaction in the *shiny* app built here.
+If one is new to *shiny* in Python, a really good documentation can be found [here](https://shiny.rstudio.com/py/docs/get-started.html). This documentation is the source for all main interaction in the *shiny* app built here.
 
 As any other *shiny* app, there will always be an UI and a Server side. Both can be coded in the same script, but they are quite differently set. The UI defines the interface of the application, and therefore one needs to define data inputs, buttons and tabs here. Below, one can see how the "Time Series Analyser" interface has been built. 
 
@@ -304,7 +304,7 @@ As in a dashboard, one will probably work with rendering plots mainly, that shou
 
 ## R Community
 
-In case one landed in this page, but is more interested in the R programming language, despite of Python, there's a similar dashboard developed in R in ![this link](https://github.com/Open-EO/r4openeo-usecases/tree/main/uc3-s5p-dashboard). Feel free to check it out as well and compare the differences from this to that app. 
+In case one landed in this page, but is more interested in the R programming language, despite of Python, there's a similar dashboard developed in R in [this link](https://github.com/Open-EO/r4openeo-usecases/tree/main/uc3-s5p-dashboard). Feel free to check it out as well and compare the differences from this to that app. 
 
 
 ## Dependencies
